@@ -66,9 +66,7 @@ about 180. The CDN therefore absorbs reads.
 
 The slow calls run at most once per hour per URL; every other request is a CDN hit.
 
-## Deploying (one-time)
+## Deploying
 
-1. Sign in at <https://vercel.com/signup> with GitHub (the Hobby plan is free and needs no card).
-2. **Add New → Project**, import `abidranesh/AirAtlas`, and set **Root Directory** to `api`.
-3. Add the environment variable `DATABASE_URL` (the pooled Neon string).
-4. Deploy, then open `https://<project>.vercel.app/api/docs`.
+The API deploys together with the web app as one Vercel project (Vercel Services); see
+[phase-5-frontend.md](phase-5-frontend.md#deploying).
