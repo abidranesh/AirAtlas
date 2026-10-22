@@ -1,0 +1,94 @@
+name: backfill-all
+
+# Loads all history in one click, then runs nightly as a gap-filler. Every step is resumable
+# (backfill_progress), so a finished step costs one or two API calls and a re-run continues
+# where the last one stopped. Three jobs run in parallel because they use different APIs:
+#   uba         Germany: 90 days hourly + 3 years daily (+ New Year's Eve windows)
+#   openaq      TN, Kerala, UAE in sequence, one shared key: 90 d hourly, 3 y daily, festival windows
+#   open_meteo  modeled hourly (90 d) + daily weather, one year per region per night
+#               (a location-year weighs ~26 calls of the free 10,000/day), + FIRMS fires (60 d)
+# Nightly re-runs also repair gaps longer than the hourly job's 7-day catch-up window, e.g. after
+# OpenAQ's India feed resumes.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 3 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backfill-all
+  cancel-in-progress: false
+
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  OPENAQ_API_KEY: ${{ secrets.OPENAQ_API_KEY }}
+  FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+  OPENAQ_RPM: "25"   # leaves room under OpenAQ's 60/min for the hourly jobs sharing the key
+  BF: python -m airatlas_ingest backfill
+
+jobs:
+  uba:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip, cache-dependency-path: "**/pyproject.toml"}
+      - run: pip install -e ./aqi-engine -e ./ingestion
+      - run: python -m airatlas_ingest migrate
+      - run: $BF --region germany --source uba --kind hourly --days 90
+      - if: ${{ !cancelled() }}
+        run: $BF --region germany --source uba --kind daily --days 1095
+      - if: ${{ !cancelled() }}
+        run: python -m airatlas_ingest backfill-events --region germany
+
+  openaq:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip, cache-dependency-path: "**/pyproject.toml"}
+      - run: pip install -e ./aqi-engine -e ./ingestion
+      - run: python -m airatlas_ingest migrate
+      - run: |
+          for r in tamil_nadu kerala uae; do
+            $BF --region $r --source openaq --kind hourly --days 90 || failed=1
+          done
+          exit ${failed:-0}
+      - if: ${{ !cancelled() }}
+        run: |
+          for r in tamil_nadu kerala uae; do
+            $BF --region $r --source openaq --kind daily --days 1095 || failed=1
+          done
+          exit ${failed:-0}
+      - if: ${{ !cancelled() }}
+        run: |
+          for r in tamil_nadu kerala uae; do
+            python -m airatlas_ingest backfill-events --region $r || failed=1
+          done
+          exit ${failed:-0}
+
+  open_meteo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip, cache-dependency-path: "**/pyproject.toml"}
+      - run: pip install -e ./aqi-engine -e ./ingestion
+      - run: python -m airatlas_ingest migrate
+      - run: |
+          for r in tamil_nadu kerala uae germany; do
+            $BF --region $r --source open_meteo --kind hourly --days 90 || failed=1
+            $BF --region $r --source open_meteo --kind weather_daily --days 1095 || failed=1
+          done
+          exit ${failed:-0}
+      - if: ${{ !cancelled() }}
+        run: |
+          for r in tamil_nadu kerala uae germany; do
+            $BF --region $r --source firms --days 60 || failed=1
+          done
+          exit ${failed:-0}
