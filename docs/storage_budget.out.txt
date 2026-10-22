@@ -1,0 +1,20 @@
+Hourly entities: 470 measured stations + 86 modeled points = 556
+Hourly reading rows/day: 13,344
+
+table                                      rows  B/row       MB  note
+readings (hourly, 97 d)               1,294,368    120    148.1  556 entities x 24 h x 97 d
+weather (hourly, 97 d)                  200,208    100     19.1  86 modeled points
+readings_daily (year 1 growth)          202,940    160     31.0  kept forever
+readings_daily (backfill)               608,820    160     92.9  3 years at launch
+event_readings (hourly, kept)           445,200    120     50.9  3710 station-days/yr x 5 yrs
+forecasts (30 d)                        172,800     60      9.9  1 run/day kept for MAE scoring
+fire_events (90 d)                      135,000     90     11.6  NASA FIRMS
+official_aqi (CPCB, 90 d)               259,200     60     14.8  sub-index snapshots
+anomalies (3 y)                          54,750    200     10.4  
+stations/regions/ingestion_runs         200,000    150     28.6  metadata + run log
+
+Total with 1.15x overhead: 480 MB = 47% of Neon free (1 GB), 96% of Supabase free (500 MB)
+Steady-state growth: ~36 MB/year (daily aggregates only; raw is capped by retention)
+Years of headroom on Neon: ~10 (alert at 80%)
+
+Why a wide readings table: 90 d raw = 148 MB wide vs ~356 MB narrow (EAV)

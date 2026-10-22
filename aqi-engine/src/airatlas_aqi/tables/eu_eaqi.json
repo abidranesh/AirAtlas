@@ -1,0 +1,43 @@
+{
+  "code": "eu_eaqi",
+  "name": "European Air Quality Index (EEA, 2025 revision)",
+  "short_name": "European AQI",
+  "country": "EU",
+  "version": "2025 (WHO 2021-aligned bands)",
+  "scale": {"type": "levels", "min": 1, "max": 6},
+  "method": "step",
+  "sources": [
+    {
+      "title": "ETC HE Report 2024/17, EEA's revision of the European air quality index bands (3 July 2025), Table 5.2 'Final agreed updated EEA European air quality index' and Table 6.1 health messages",
+      "url": "https://www.eionet.europa.eu/etcs/etc-he/products/etc-he-products/etc-he-reports/etc-he-report-2024-17-eeas-revision-of-the-european-air-quality-index-bands",
+      "accessed": "2026-10-21"
+    }
+  ],
+  "categories": [
+    {"key": "good", "label": "Good", "color": "#50F0E6", "level": 1, "health": "The air quality is good. Enjoy your usual outdoor activities.", "health_sensitive": "The air quality is good. Enjoy your usual outdoor activities."},
+    {"key": "fair", "label": "Fair", "color": "#50CCAA", "level": 2, "health": "Enjoy your usual outdoor activities.", "health_sensitive": "Enjoy your usual outdoor activities."},
+    {"key": "moderate", "label": "Moderate", "color": "#F0E641", "level": 3, "health": "Enjoy your usual outdoor activities.", "health_sensitive": "Consider reducing intense outdoor activities if you experience symptoms."},
+    {"key": "poor", "label": "Poor", "color": "#FF5050", "level": 4, "health": "Consider reducing intense outdoor activities if you experience symptoms such as sore eyes, a cough or a sore throat.", "health_sensitive": "Consider reducing physical activities, particularly outdoors, especially if you experience symptoms."},
+    {"key": "very_poor", "label": "Very poor", "color": "#960032", "level": 5, "health": "Consider reducing intense outdoor activities if you experience symptoms such as sore eyes, a cough or a sore throat.", "health_sensitive": "Reduce physical activities, particularly outdoors, especially if you experience symptoms."},
+    {"key": "extremely_poor", "label": "Extremely poor", "color": "#7D2181", "level": 6, "health": "Reduce physical activities outdoors.", "health_sensitive": "Avoid physical activities outdoors."}
+  ],
+  "pollutants": {
+    "pm25": {"averaging": "1h", "unit": "ug/m3", "round": 0, "upper": [5, 15, 50, 90, 140, null]},
+    "pm10": {"averaging": "1h", "unit": "ug/m3", "round": 0, "upper": [15, 45, 120, 195, 270, null]},
+    "o3":   {"averaging": "1h", "unit": "ug/m3", "round": 0, "upper": [60, 100, 120, 160, 180, null]},
+    "no2":  {"averaging": "1h", "unit": "ug/m3", "round": 0, "upper": [10, 25, 60, 100, 150, null]},
+    "so2":  {"averaging": "1h", "unit": "ug/m3", "round": 0, "upper": [20, 40, 125, 190, 275, null]}
+  },
+  "min_pollutants": 1,
+  "required_any": [],
+  "partial_without": ["pm25", "pm10"],
+  "rules": [
+    "Each pollutant's hourly mean is rounded half-up to an integer and classified with inclusive upper bounds. The 2025 revision uses hourly PM; the old index used a running 24-h mean.",
+    "The index is the worst sub-index across available pollutants."
+  ],
+  "notes": [
+    "The index is computed from whatever subset of pollutants is available. Results without PM are flagged 'partial' in the API. EEA's map has its own station-inclusion rules, which we do not replicate.",
+    "Open-Meteo's 'european_aqi' field uses its own continuous 0-100+ mapping of the older bands, so it is not comparable with this table. AirAtlas always recomputes from concentrations.",
+    "This is the AirAtlas common comparison scale."
+  ]
+}

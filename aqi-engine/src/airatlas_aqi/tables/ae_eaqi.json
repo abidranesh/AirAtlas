@@ -1,0 +1,79 @@
+{
+  "code": "ae_eaqi",
+  "name": "Emirati Air Quality Index (UAE)",
+  "short_name": "UAE EAQI",
+  "country": "AE",
+  "version": "2023",
+  "scale": {"type": "index", "min": 0, "max": 500},
+  "method": "segments",
+  "sources": [
+    {
+      "title": "National Center of Meteorology, Guideline for calculating the Emirati Air Quality Index (EAQI), 2023, Table 3",
+      "url": "https://airquality.ncm.gov.ae/resources/pdf/aqi-quickguide-en-2023.pdf",
+      "accessed": "2026-10-21"
+    }
+  ],
+  "categories": [
+    {"key": "good", "label": "Good", "color": "#00E400", "index": [0, 50], "health": "No risk for the population."},
+    {"key": "moderate", "label": "Moderate", "color": "#FFFF00", "index": [51, 100], "health": "Acceptable for the majority of the population."},
+    {"key": "usg", "label": "Unhealthy for sensitive groups", "color": "#FF7E00", "index": [101, 150], "health": "Sensitive individuals should avoid exposure."},
+    {"key": "unhealthy", "label": "Unhealthy", "color": "#FF0000", "index": [151, 200], "health": "A greater proportion of the public may be affected."},
+    {"key": "very_unhealthy", "label": "Very unhealthy", "color": "#8F3F97", "index": [201, 300], "health": "Everyone may experience health effects."},
+    {"key": "hazardous", "label": "Hazardous", "color": "#7E0023", "index": [301, 500], "health": "The entire population is expected to be affected."}
+  ],
+  "pollutants": {
+    "o3": {
+      "unit": "ug/m3", "truncate": 0, "max_valid_hourly": 1000.4,
+      "averagings": {
+        "1h": {"min_valid_hours": 1, "segments": [[200, 322, 101, 150], [323, 400, 151, 200], [401, 792, 201, 300], [793, 1184, 301, 500]]},
+        "8h": {"min_valid_hours": 6, "national_standard": 120, "segments": [[0, 100, 0, 50], [101, 120, 51, 100], [121, 167, 101, 150], [168, 206, 151, 200], [207, 392, 201, 300]]}
+      }
+    },
+    "co": {
+      "unit": "mg/m3", "truncate": 1, "max_valid_hourly": 150.4,
+      "averagings": {
+        "8h": {"min_valid_hours": 6, "national_standard": 10.4, "segments": [[0.0, 5.4, 0, 50], [5.5, 10.4, 51, 100], [10.5, 14.4, 101, 150], [14.5, 17.9, 151, 200], [18.0, 35.4, 201, 300], [35.5, 58.4, 301, 500]]}
+      }
+    },
+    "so2": {
+      "unit": "ug/m3", "truncate": 0, "max_valid_hourly": 1750.4,
+      "averagings": {
+        "1h": {"min_valid_hours": 1, "segments": [[0, 92, 0, 50], [93, 350, 51, 100], [351, 485, 101, 150], [486, 797, 151, 200]]},
+        "24h": {"min_valid_hours": 18, "national_standard": 350, "segments": [[798, 1583, 201, 300], [1584, 2631, 301, 500]]}
+      }
+    },
+    "no2": {
+      "unit": "ug/m3", "truncate": 0, "max_valid_hourly": 2000.4,
+      "averagings": {
+        "1h": {"min_valid_hours": 1, "segments": [[0, 100, 0, 50], [101, 400, 51, 100], [401, 677, 101, 150], [678, 1221, 151, 200], [1222, 2349, 201, 300], [2350, 3853, 301, 500]]}
+      }
+    },
+    "pm10": {
+      "unit": "ug/m3", "truncate": 0, "max_valid_hourly": 2500.0,
+      "averagings": {
+        "24h": {"min_valid_hours": 18, "national_standard": 150, "segments": [[0, 75, 0, 50], [76, 150, 51, 100], [151, 250, 101, 150], [251, 350, 151, 200], [351, 420, 201, 300], [421, 600, 301, 500]]}
+      }
+    },
+    "pm25": {
+      "unit": "ug/m3", "truncate": 1, "max_valid_hourly": 2500.0,
+      "averagings": {
+        "24h": {"min_valid_hours": 18, "national_standard": 60.4, "segments": [[0.0, 50.4, 0, 50], [50.5, 60.4, 51, 100], [60.5, 75.4, 101, 150], [75.5, 150.4, 151, 200], [150.5, 250.4, 201, 300], [250.5, 500.4, 301, 500]]}
+      }
+    }
+  },
+  "min_pollutants": 1,
+  "required_any": [],
+  "rules": [
+    "US-EPA (2018) method: SI = (I_hi - I_lo)/(BP_hi - BP_lo) x (C - BP_lo) + I_lo, using truncated concentrations. O3, SO2, NO2, PM10 are truncated to 1 ug; CO to 0.1 mg; PM2.5 to 0.1 ug.",
+    "Each sub-index is rounded half-up to an integer. EAQI = max sub-index.",
+    "O3: compute both the 1-h and 8-h sub-indices and take the larger. A 1-h value below the national standard (200 ug) is not used. When the 8-h value exceeds 392, only 1-h is used.",
+    "SO2: when the 1-h value exceeds 797, the 24-h rolling mean is used.",
+    "Rolling means need at least 6 of 8 or 18 of 24 valid hours. With fewer: the sub-index is null if all hours are below the national standard, otherwise the maximum hourly value is used.",
+    "Hourly values above the validation thresholds (CO 150.4 mg; SO2 1750.4; NO2 2000.4; O3 1000.4; PM 2500.0 ug) are treated as invalid."
+  ],
+  "notes": [
+    "Two cases the guideline does not specify, decided by us: (1) above the top breakpoint but below the validation threshold (e.g. PM10 600-2500), we extrapolate along the top band and flag beyond_scale. (2) 1-h SO2 > 797 while the 24-h mean is < 798: sub-index = 200, following the US-EPA 2018 Technical Assistance Document that the guideline builds on.",
+    "Table 2 and Table 3 of the guideline differ slightly (e.g. CO 'Good' is 0-5 in Table 2 and 0.0-5.4 in Table 3). The guideline says to compute with Table 3, so we do.",
+    "The worked O3 example mentions breakpoints '125 and 169' but computes with 121/167. Our test asserts the published result: 135.485 ug gives 116."
+  ]
+}

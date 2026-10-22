@@ -1,0 +1,45 @@
+{
+  "code": "de_uba_lqi",
+  "name": "German Air Quality Index (Umweltbundesamt Luftqualitätsindex)",
+  "short_name": "UBA LQI",
+  "country": "DE",
+  "version": "2025 risk-based revision (live on UBA API v4)",
+  "scale": {"type": "levels", "min": 1, "max": 5},
+  "method": "step",
+  "sources": [
+    {
+      "title": "UBA, Umwelt und Gesundheit 08/2025: Überarbeitung des Luftqualitätsindex nach den WHO-Leitlinien 2021, Table 5 'Proposal 2 for risk-based AQI'",
+      "url": "https://www.umweltbundesamt.de/system/files/medien/11850/publikationen/08_2025_uug.pdf",
+      "accessed": "2026-10-21"
+    },
+    {
+      "title": "Empirical confirmation: 129,519 station-hours of UBA Air Data API v4 /airquality output (2026-01, 2026-07, 2026-10). Every observed band edge matches Proposal 2.",
+      "url": "https://luftdaten.umweltbundesamt.de/api/air-data/v4/",
+      "accessed": "2026-10-21"
+    }
+  ],
+  "categories": [
+    {"key": "very_good", "label": "Very good", "color": "#00A0A0", "level": 1, "health": "Ideal conditions for outdoor activities."},
+    {"key": "good", "label": "Good", "color": "#5BC8AF", "level": 2, "health": "Enjoy outdoor activities; health effects are unlikely."},
+    {"key": "moderate", "label": "Moderate", "color": "#F0E641", "level": 3, "health": "Short-term effects are unlikely, but long-term exposure at this level can harm health. Sensitive people may want to limit strenuous outdoor activity."},
+    {"key": "poor", "label": "Poor", "color": "#FF5050", "level": 4, "health": "Sensitive groups should avoid strenuous outdoor activity. Others should reduce it if symptoms appear."},
+    {"key": "very_poor", "label": "Very poor", "color": "#960032", "level": 5, "health": "Health effects possible for everyone. Postpone strenuous outdoor activity or move it to a place with better air."}
+  ],
+  "pollutants": {
+    "no2":  {"averaging": "1h", "unit": "ug/m3", "round": 0, "upper": [10, 30, 60, 100, null]},
+    "pm10": {"averaging": "1h", "unit": "ug/m3", "round": 0, "upper": [9, 27, 54, 90, null]},
+    "pm25": {"averaging": "1h", "unit": "ug/m3", "round": 0, "upper": [5, 15, 30, 50, null]},
+    "o3":   {"averaging": "1h", "unit": "ug/m3", "round": 0, "upper": [24, 72, 144, 240, null]},
+    "so2":  {"averaging": "1h", "unit": "ug/m3", "round": 0, "upper": [10, 30, 60, 100, null]}
+  },
+  "min_pollutants": 1,
+  "required_any": [],
+  "rules": [
+    "Each pollutant's hourly mean, rounded half-up to an integer, is classified into 5 bands with inclusive upper bounds. The index is the worst class (UBA: 'the pollutant with the worst index value determines the overall index').",
+    "An index is formed as soon as one pollutant is available (UBA report, section on application to 2019/2022 data)."
+  ],
+  "notes": [
+    "UBA's 2023 documentation (lqi_dokumentation_final_202305.pdf) describes the previous index (NO2 0-20 'very good', PM as a 24-h mean). The API no longer uses it. The live classification matches the 2025 risk-based proposal exactly, including SO2.",
+    "Colours are AirAtlas's palette. UBA's official colours could not be verified because the UBA website was in maintenance mode on 2026-10-21. Health texts are short paraphrases of the 2025 report's Table 6 recommendations."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Real time Air Quality Index from various locations",
+  "total": 6,
+  "count": 6,
+  "limit": "10",
+  "offset": "0",
+  "records": [
+    {"country": "India", "state": "Kerala", "city": "Kannur", "station": "Thavakkara, Kannur - Kerala PCB", "last_update": "21-10-2026 22:00:00", "latitude": "11.875", "longitude": "75.3732", "pollutant_id": "PM2.5", "min_value": "45", "max_value": "53", "avg_value": "49"},
+    {"country": "India", "state": "Kerala", "city": "Kannur", "station": "Thavakkara, Kannur - Kerala PCB", "last_update": "21-10-2026 22:00:00", "latitude": "11.875", "longitude": "75.3732", "pollutant_id": "CO", "min_value": "28", "max_value": "33", "avg_value": "31"},
+    {"country": "India", "state": "Kerala", "city": "Kannur", "station": "Thavakkara, Kannur - Kerala PCB", "last_update": "21-10-2026 22:00:00", "latitude": "11.875", "longitude": "75.3732", "pollutant_id": "CO", "min_value": "28", "max_value": "33", "avg_value": "31"},
+    {"country": "India", "state": "Kerala", "city": "Thrissur", "station": "Corporation Ground, Thrissur - Kerala PCB", "last_update": "21-10-2026 22:00:00", "latitude": "10.5243", "longitude": "76.2144", "pollutant_id": "OZONE", "min_value": "NA", "max_value": "NA", "avg_value": "NA"},
+    {"country": "India", "state": "Kerala", "city": "Thrissur", "station": "Corporation Ground, Thrissur - Kerala PCB", "last_update": "21-10-2026 22:00:00", "latitude": "10.5243", "longitude": "76.2144", "pollutant_id": "NH3", "min_value": "2", "max_value": "3", "avg_value": "2"},
+    {"country": "India", "state": "Kerala", "city": "Eloor", "station": "Udyogamandal, Eloor - Kerala PCB", "last_update": "21-10-2026 22:00:00", "latitude": "10.0753", "longitude": "76.3013", "pollutant_id": "Pb", "min_value": "1", "max_value": "1", "avg_value": "1"}
+  ]
+}

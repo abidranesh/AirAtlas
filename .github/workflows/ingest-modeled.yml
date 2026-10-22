@@ -1,0 +1,35 @@
+name: ingest-modeled
+
+# Open-Meteo modeled air quality + weather and NASA FIRMS fires, every 3 hours.
+# (Hourly would use ~6,600 of Open-Meteo's 10,000 free calls/day; every 3 h uses ~2,200.)
+on:
+  schedule:
+    - cron: "41 */3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        region: [tamil_nadu, kerala, uae, germany]
+    concurrency:
+      group: modeled-${{ matrix.region }}
+      cancel-in-progress: false
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: "**/pyproject.toml"
+      - run: pip install -e ./aqi-engine -e ./ingestion
+      - run: python -m airatlas_ingest modeled --region ${{ matrix.region }}

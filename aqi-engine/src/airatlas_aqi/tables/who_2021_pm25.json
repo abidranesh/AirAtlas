@@ -1,0 +1,46 @@
+{
+  "code": "who_2021_pm25",
+  "name": "PM2.5 against WHO 2021 Air Quality Guidelines",
+  "short_name": "WHO PM2.5",
+  "country": "WORLD",
+  "version": "2021",
+  "scale": {"type": "levels", "min": 1, "max": 6},
+  "method": "step",
+  "sources": [
+    {
+      "title": "WHO global air quality guidelines (2021), Table 0.1, as reproduced in ETC HE Report 2024/17 Table 1.2",
+      "url": "https://www.who.int/publications/i/item/9789240034228",
+      "accessed": "2026-10-21"
+    }
+  ],
+  "categories": [
+    {"key": "aqg", "label": "Meets WHO guideline", "color": "#2E7D32", "level": 1, "health": "At or below the WHO 24-h guideline level (15 ug/m3)."},
+    {"key": "it4", "label": "Interim target 4", "color": "#9CCC65", "level": 2, "health": "Above the guideline, within interim target 4 (25 ug/m3)."},
+    {"key": "it3", "label": "Interim target 3", "color": "#FFEE58", "level": 3, "health": "Within interim target 3 (37.5 ug/m3)."},
+    {"key": "it2", "label": "Interim target 2", "color": "#FFA726", "level": 4, "health": "Within interim target 2 (50 ug/m3)."},
+    {"key": "it1", "label": "Interim target 1", "color": "#E53935", "level": 5, "health": "Within interim target 1 (75 ug/m3)."},
+    {"key": "above_it1", "label": "Above all WHO targets", "color": "#6A1B9A", "level": 6, "health": "Above every WHO interim target. Reduce outdoor exertion."}
+  ],
+  "pollutants": {
+    "pm25": {"averaging": "24h", "unit": "ug/m3", "min_valid_hours": 18, "round": null, "upper": [15, 25, 37.5, 50, 75, null]}
+  },
+  "min_pollutants": 1,
+  "required_any": ["pm25"],
+  "guideline_multiple_of": 15,
+  "rules": [
+    "The 24-h mean PM2.5 is compared with the WHO 2021 24-h AQG level (15) and interim targets IT4 25, IT3 37.5, IT2 50, IT1 75 (ug/m3), using inclusive upper bounds and no rounding.",
+    "The API also reports the concentration as a multiple of the guideline (C / 15), which is easy to compare across countries."
+  ],
+  "reference_guidelines": {
+    "pm25": {"annual": [35, 25, 15, 10, 5], "24h": [75, 50, 37.5, 25, 15]},
+    "pm10": {"annual": [70, 50, 30, 20, 15], "24h": [150, 100, 75, 50, 45]},
+    "o3":   {"peak_season": [100, 70, null, null, 60], "8h": [160, 120, null, null, 100]},
+    "no2":  {"annual": [40, 30, 20, null, 10], "24h": [120, 50, null, null, 25]},
+    "so2":  {"24h": [125, 50, null, null, 40]},
+    "co":   {"24h_mg": [7, null, null, null, 4]}
+  },
+  "notes": [
+    "reference_guidelines lists [IT1, IT2, IT3, IT4, AQG] for every pollutant. Insight pages use it for annual comparisons.",
+    "Requiring 18 of 24 valid hours is our choice, matching the strictest 24-h rule used elsewhere in AirAtlas."
+  ]
+}
