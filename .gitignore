@@ -12,3 +12,8 @@ ml/models/
 
 # local runs
 *.log
+
+# api: engine vendored at Vercel build time
+api/airatlas_aqi/
+build/
+*.egg-info/

@@ -4,11 +4,12 @@ Real-time and historical air quality for **Tamil Nadu, Kerala, the UAE and Germa
 own national AQI standard, with a common scale for fair cross-country comparison, plus 24–48 h forecasts and
 explained pollution spikes. Runs entirely on free tiers.
 
-> Status: **Phase 3 complete**. Phase 1: [source verification and storage budget](docs/phase-1-data-sources.md). Phase 2: [AQI engine](aqi-engine/README.md) with 5 standards and generated [breakpoint docs](docs/aqi-standards/README.md). Phase 3: [database and ingestion](docs/phase-3-ingestion.md) (Neon + PostGIS, 6 source adapters, GitHub Actions cron).
+> Status: **Phase 4 complete**. [1: sources and storage budget](docs/phase-1-data-sources.md) · [2: AQI engine](aqi-engine/README.md) ([standards](docs/aqi-standards/README.md)) · [3: database and ingestion](docs/phase-3-ingestion.md) · [4: read API](docs/phase-4-api.md)
 
 ## Repository layout
 
 ```
+api/          Python: FastAPI read API (Vercel), AQI computed at read time with aqi-engine
 ingestion/    Python: one adapter per data source behind a common interface; GitHub Actions cron per region
 aqi-engine/   Python: pluggable AQI standards (CPCB NAQI, UBA, EEA EAQI, UAE EAQI, WHO 2021) + unit conversion
 ml/           Python: baseline + gradient-boosting forecasts, anomaly detection
@@ -23,10 +24,11 @@ scripts/      One-off tools (source verification)
 cp .env.example .env              # add your free keys (see .env.example for sign-up links)
 python scripts/verify_sources.py  # probes every source, prints coverage per region
 python docs/storage_budget.py     # reproducible storage math
-pip install -e aqi-engine -e "ingestion[dev]"
+pip install -e aqi-engine -e "ingestion[dev]" -e "api[dev]" uvicorn
 python -m airatlas_ingest migrate && python -m airatlas_ingest boundaries
 python -m airatlas_ingest hourly --region germany
-(cd aqi-engine && python -m pytest -q) && (cd ingestion && python -m pytest -q)   # set TEST_DATABASE_URL for DB tests
+(cd api && uvicorn app:app --reload)            # http://localhost:8000/api/docs
+for d in aqi-engine ingestion api; do (cd $d && python -m pytest -q); done   # set TEST_DATABASE_URL for DB tests
 ```
 
 ## Adding a region

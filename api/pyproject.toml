@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "airatlas-api"
+version = "0.1.0"
+description = "AirAtlas read API (FastAPI on Vercel). Computes AQI at read time with airatlas-aqi."
+requires-python = ">=3.12"
+# airatlas-aqi is not listed: it is stdlib-only and vendored at build time (vendor_engine.py),
+# because Vercel builds this directory as its own project.
+dependencies = [
+    "fastapi>=0.115",
+    "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[tool.setuptools]
+py-modules = ["app"]
+packages = ["airatlas_api"]
+
+[tool.vercel]
+entrypoint = "app:app"
+
+[tool.vercel.scripts]
+build = "python vendor_engine.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["db: needs TEST_DATABASE_URL (Postgres + PostGIS)"]
