@@ -16,6 +16,7 @@ from .adapters.openaq import OpenAQAdapter
 from .adapters.openmeteo import OpenMeteoAdapter
 from .adapters.uba import UbaAdapter
 from .config import Region, Settings
+from .http import SourceError
 from .events import EVENTS
 from .models import StationKey
 
@@ -45,7 +46,16 @@ def _run_each(conn, job: str, region: Region | None, steps: dict[str, Callable[[
 
 # --- hourly: measured sources -------------------------------------------------------------
 def _cpcb(conn, settings: Settings, region: Region, run: db.Run) -> None:
-    stations, official = CpcbAdapter(settings.data_gov_in_api_key).fetch_state(region.cpcb_state, run.rejected)
+    try:
+        stations, official = CpcbAdapter(settings.data_gov_in_api_key).fetch_state(region.cpcb_state, run.rejected)
+    except SourceError as e:
+        # Without our own key we share data.gov.in's public sample key, which is often throttled.
+        # CPCB here only adds the official-index badge (concentrations come from OpenAQ), so a
+        # throttled hour is recorded as 'partial' and the next hour tries again.
+        if settings.data_gov_in_api_key or "429" not in str(e):
+            raise
+        run.errors.append(f"sample key rate-limited, skipped this hour: {e}")
+        return
     db.upsert_stations(conn, "cpcb", stations)
     run.fetched = len(official)
     run.written = db.write_official(conn, official, run.rejected)
