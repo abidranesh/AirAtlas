@@ -28,6 +28,7 @@ export default function RegionView({ code }: { code: RegionCode }) {
   const latest = useApi<RegionLatest>(`/regions/${code}/latest?scale=${scale}`, { keepPrevious: true });
   const boundaries = useApi<BoundaryCollection>(`/regions/${code}/boundaries`);
   const [showModeled, setShowModeled] = useState(true);
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   const data = latest.data;
   const region = meta.data?.regions.find((r) => r.code === code);
@@ -82,12 +83,20 @@ export default function RegionView({ code }: { code: RegionCode }) {
                 areas={data?.areas ?? []}
                 stations={data?.stations ?? []}
                 showModeled={showModeled}
+                heatmapUrl={showHeatmap ? `/api/v1/regions/${code}/heatmap.png?scale=${scale}` : undefined}
                 onOpenStation={openStation}
                 className="h-[55vh] min-h-80"
               />
             </div>
           ) : (
             <Skeleton className="h-[55vh] min-h-80" />
+          )}
+          {showHeatmap && (
+            <p className="text-xs text-neutral-600 dark:text-neutral-400">
+              Heatmap: PM2.5 interpolated between stations (inverse distance weighting; monitors weigh more than model points),
+              averaged the way {standard?.short_name ?? "this standard"} does, coloured on its PM2.5 bands. An estimate, not a
+              measurement; blank where no station is within range.
+            </p>
           )}
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-600 dark:text-neutral-400">
             <span className="flex flex-wrap items-center gap-3">
@@ -96,10 +105,16 @@ export default function RegionView({ code }: { code: RegionCode }) {
               <span className="inline-flex items-center gap-1"><span className="inline-block size-3 rounded-full border-2 border-neutral-500" /> Modeled point</span>
               <span>Dashed areas = modeled estimate</span>
             </span>
-            <label className="inline-flex items-center gap-1.5">
-              <input type="checkbox" checked={showModeled} onChange={(e) => setShowModeled(e.target.checked)} />
-              Show modeled points
-            </label>
+            <span className="flex flex-wrap gap-3">
+              <label className="inline-flex items-center gap-1.5">
+                <input type="checkbox" checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} />
+                Heatmap
+              </label>
+              <label className="inline-flex items-center gap-1.5">
+                <input type="checkbox" checked={showModeled} onChange={(e) => setShowModeled(e.target.checked)} />
+                Show modeled points
+              </label>
+            </span>
           </div>
         </div>
 

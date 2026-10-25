@@ -9,7 +9,7 @@ from airatlas_aqi import COMMON_SCALES, STANDARDS, get_standard
 from fastapi import APIRouter, FastAPI, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import caching, data, db
+from . import caching, data, db, heatmap
 from .caching import Policy
 
 Scale = Literal["local", "eu_eaqi", "who_2021_pm25"]
@@ -64,6 +64,18 @@ def region_latest(response: Response, region: Region, scale: Scale = "local", in
 def region_boundaries(response: Response, region: Region):
     caching.apply(response, Policy.STATIC)
     return data.boundaries(region)
+
+
+@v1.get("/regions/{region}/heatmap.png", summary="Interpolated PM2.5 (IDW) as a PNG overlay covering the region's bbox",
+        response_class=Response, responses={200: {"content": {"image/png": {}}}})
+def region_heatmap(region: Region, scale: Scale = "local"):
+    png, info = heatmap.build(region, scale)
+    return Response(png, media_type="image/png", headers={
+        "Cache-Control": caching.header(Policy.LIVE),
+        # Diagnostics for the UI and for tests; the image itself carries no metadata.
+        "X-Heatmap-Info": ";".join(f"{k}={v}" for k, v in info.items()),
+        "Access-Control-Expose-Headers": "X-Heatmap-Info",
+    })
 
 
 @v1.get("/stations/{station_id}", summary="Station details with AQI on the local standard and all common scales")

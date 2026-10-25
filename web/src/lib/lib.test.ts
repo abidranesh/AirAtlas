@@ -85,6 +85,8 @@ describe("map styles", () => {
     expect(areaStyle(modeled).dashArray).toBe("4 4");
     expect(areaStyle(modeled).fillOpacity!).toBeLessThan(areaStyle(measured).fillOpacity!);
     expect(areaStyle(undefined).fillColor).toBe(NO_DATA_COLOR);
+    expect(areaStyle(measured, true).fillOpacity).toBe(0); // heatmap on: outlines only
+    expect(areaStyle(measured, true).weight).toBe(1);
   });
 });
 

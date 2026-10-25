@@ -18,6 +18,8 @@ interface Props {
   areas: AreaSummary[];
   stations: StationLatest[];
   showModeled: boolean;
+  /** PNG overlay covering bbox (interpolated PM2.5); undefined hides it. */
+  heatmapUrl?: string;
   onOpenStation: (id: number) => void;
   className?: string;
 }
@@ -54,11 +56,11 @@ function popupFor(s: StationLatest, onOpen: (id: number) => void): HTMLElement {
   return root;
 }
 
-export default function RegionMap({ bbox, boundaries, areas, stations, showModeled, onOpenStation, className }: Props) {
+export default function RegionMap({ bbox, boundaries, areas, stations, showModeled, heatmapUrl, onOpenStation, className }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<Leaflet.Map | null>(null);
   const lib = useRef<typeof Leaflet | null>(null);
-  const layers = useRef<{ areas?: Leaflet.GeoJSON; stations?: Leaflet.LayerGroup }>({});
+  const layers = useRef<{ areas?: Leaflet.GeoJSON; stations?: Leaflet.LayerGroup; heat?: Leaflet.ImageOverlay }>({});
   const [ready, setReady] = useState(false);
 
   // Create the map once. Leaflet touches `window`, so it is imported only in the browser.
@@ -74,6 +76,9 @@ export default function RegionMap({ bbox, boundaries, areas, stations, showModel
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(m);
       m.fitBounds(L.latLngBounds(bbox[0].map(([lon, lat]) => [lat, lon] as [number, number])), { padding: [8, 8] });
+      // Heatmap sits above the tiles but below area outlines and markers (overlayPane is z-index 400).
+      m.createPane("heat").style.zIndex = "350";
+      m.getPane("heat")!.style.pointerEvents = "none";
       map.current = m;
       setReady(true);
     });
@@ -97,7 +102,7 @@ export default function RegionMap({ bbox, boundaries, areas, stations, showModel
     if (boundaries) {
       const byId = new Map(areas.map((a) => [a.area_id, a]));
       layers.current.areas = L.geoJSON(boundaries as GeoJSON.FeatureCollection, {
-        style: (f) => areaStyle(byId.get(f?.properties.id)),
+        style: (f) => areaStyle(byId.get(f?.properties.id), Boolean(heatmapUrl)),
         onEachFeature: (f, layer) => {
           const a = byId.get(f.properties.id);
           const tip = el("div");
@@ -126,7 +131,22 @@ export default function RegionMap({ bbox, boundaries, areas, stations, showModel
         group.addLayer(marker);
       });
     layers.current.stations = group.addTo(m);
-  }, [ready, boundaries, areas, stations, showModeled, onOpenStation]);
+  }, [ready, boundaries, areas, stations, showModeled, heatmapUrl, onOpenStation]);
+
+  // Interpolated overlay: the API renders it for exactly the region's bbox.
+  useEffect(() => {
+    const L = lib.current;
+    const m = map.current;
+    if (!ready || !L || !m) return;
+    layers.current.heat?.remove();
+    layers.current.heat = undefined;
+    if (heatmapUrl) {
+      const bounds = L.latLngBounds(bbox[0].map(([lon, lat]) => [lat, lon] as [number, number]));
+      layers.current.heat = L.imageOverlay(heatmapUrl, bounds, { pane: "heat", interactive: false, alt: "Interpolated PM2.5 heatmap" }).addTo(m);
+    }
+    // bbox is fixed per region (component is keyed by region)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, heatmapUrl]);
 
   return (
     <div

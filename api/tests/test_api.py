@@ -148,3 +148,19 @@ def test_status_reports_runs_freshness_and_storage(client):
     run = next(r for r in d["runs"] if r["source"] == "uba")
     assert run["last_status"] == "success" and run["rows_24h"] == 61
     assert d["storage"]["limit_bytes"] == 1024**3 and d["storage"]["used_pct"] >= 0
+
+
+def test_heatmap_png(client):
+    from test_idw import decode
+
+    r = client.get("/api/v1/regions/germany/heatmap.png")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/png"
+    assert "s-maxage=" in r.headers["cache-control"]
+    info = dict(kv.split("=", 1) for kv in r.headers["x-heatmap-info"].split(";"))
+    assert info["standard"] == "de_uba_lqi" and info["pollutant"] == "pm25/1h"
+    assert int(info["measured_points"]) >= 1   # the 30-h-old 'Berlin Old' station must not count
+    img = decode(r.content)
+    w, h = map(int, info["size"].split("x"))
+    assert img.shape == (h, w, 4)
+    opaque = img[img[..., 3] > 0]
+    assert len(opaque) > 0 and (img[..., 3] == 0).any()   # coloured near data, transparent elsewhere

@@ -17,11 +17,12 @@ export function markerStyle(s: StationLatest): Leaflet.CircleMarkerOptions {
   return { radius: 7, color: "#111827", weight: 1.2, fillColor: color, fillOpacity: hasValue ? 0.95 : 0.55 };
 }
 
-export function areaStyle(a: AreaSummary | undefined): Leaflet.PathOptions {
+/** outlineOnly: when the interpolated heatmap is shown, areas keep their borders but drop their fill. */
+export function areaStyle(a: AreaSummary | undefined, outlineOnly = false): Leaflet.PathOptions {
   const modeled = a?.basis === "modeled";
   return {
     fillColor: a?.category?.color ?? NO_DATA_COLOR,
-    fillOpacity: a?.value == null ? 0.1 : modeled ? 0.22 : 0.42,
+    fillOpacity: outlineOnly ? 0 : a?.value == null ? 0.1 : modeled ? 0.22 : 0.42,
     color: "#475569",
     weight: 1,
     dashArray: modeled ? "4 4" : undefined,
