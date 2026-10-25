@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { useApi } from "@/lib/api";
 import { ageText, fmt, localTime, POLLUTANTS, REGION_NAMES, SCALE_LABELS } from "@/lib/format";
-import type { Evaluation, Meta, Scale, Series, StationDetail } from "@/lib/types";
+import type { AnomalyEpisode, Evaluation, Meta, Scale, Series, StationDetail } from "@/lib/types";
 import { useScale } from "@/lib/useScale";
+import { EpisodeItem } from "./AnomalyList";
 import { AqiBadge, Card, ErrorNote, FreshnessBadge, KindBadge, ScaleToggle, Skeleton } from "./ui";
 
 // Recharts is ~100 KB; load it only when the trends section renders.
@@ -67,6 +68,7 @@ export default function StationView({ id }: { id: number }) {
   const meta = useApi<Meta>("/meta");
   const detail = useApi<StationDetail>(`/stations/${id}`);
   const series = useApi<Series>(`/stations/${id}/series?range=${range}&scale=${scale}`, { keepPrevious: true });
+  const anomalies = useApi<{ episodes: AnomalyEpisode[] }>(`/stations/${id}/anomalies?days=90`);
 
   if (detail.error) return <ErrorNote error={detail.error} />;
   const st = detail.data;
@@ -163,7 +165,7 @@ export default function StationView({ id }: { id: number }) {
             <Skeleton className="h-64" />
           ) : (
             <div className={series.loading ? "opacity-60" : ""}>
-              <ConcentrationChart series={series.data} pollutant={pollutant} tz={tz} />
+              <ConcentrationChart series={series.data} pollutant={pollutant} tz={tz} episodes={anomalies.data?.episodes} />
               {series.data.aqi && std && (
                 <>
                   <h3 className="mt-4 mb-1 text-sm font-medium">Hourly {std.short_name}</h3>
@@ -208,6 +210,20 @@ export default function StationView({ id }: { id: number }) {
               </table>
             ) : (
               <p className="text-sm text-neutral-500">No recent measurements.</p>
+            )}
+          </Card>
+          <Card>
+            <h2 className="mb-1 font-semibold">Pollution spikes, 90 days</h2>
+            {!anomalies.data ? (
+              <Skeleton className="h-16" />
+            ) : anomalies.data.episodes.length === 0 ? (
+              <p className="text-sm text-neutral-500">None detected.</p>
+            ) : (
+              <ul className="max-h-96 divide-y divide-neutral-200 overflow-y-auto dark:divide-neutral-800">
+                {anomalies.data.episodes.slice(0, 20).map((ep) => (
+                  <EpisodeItem key={ep.id} ep={ep} tz={tz} showStation={false} />
+                ))}
+              </ul>
             )}
           </Card>
           <Card>

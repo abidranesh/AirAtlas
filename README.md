@@ -4,7 +4,7 @@ Real-time and historical air quality for **Tamil Nadu, Kerala, the UAE and Germa
 own national AQI standard, with a common scale for fair cross-country comparison, plus 24–48 h forecasts and
 explained pollution spikes. Runs entirely on free tiers.
 
-> Status: **Phase 6 complete**, live at https://airatlas-omega.vercel.app. [1: sources and storage budget](docs/phase-1-data-sources.md) · [2: AQI engine](aqi-engine/README.md) ([standards](docs/aqi-standards/README.md)) · [3: database and ingestion](docs/phase-3-ingestion.md) · [4: read API](docs/phase-4-api.md) · [5: frontend](docs/phase-5-frontend.md) · [6: IDW heatmap](docs/phase-6-heatmap.md)
+> Status: **Phase 7 complete**, live at https://airatlas-omega.vercel.app. [1: sources and storage budget](docs/phase-1-data-sources.md) · [2: AQI engine](aqi-engine/README.md) ([standards](docs/aqi-standards/README.md)) · [3: database and ingestion](docs/phase-3-ingestion.md) · [4: read API](docs/phase-4-api.md) · [5: frontend](docs/phase-5-frontend.md) · [6: IDW heatmap](docs/phase-6-heatmap.md) · [7: anomalies and cause hints](docs/phase-7-anomalies.md)
 
 ## Repository layout
 
@@ -12,7 +12,7 @@ explained pollution spikes. Runs entirely on free tiers.
 api/          Python: FastAPI read API (Vercel), AQI computed at read time with aqi-engine
 ingestion/    Python: one adapter per data source behind a common interface; GitHub Actions cron per region
 aqi-engine/   Python: pluggable AQI standards (CPCB NAQI, UBA, EEA EAQI, UAE EAQI, WHO 2021) + unit conversion
-ml/           Python: baseline + gradient-boosting forecasts, anomaly detection
+ml/           Python: anomaly detection with cause hints (fires, dust, wind, festivals); forecasts in Phase 9
 web/          Next.js 16 + TypeScript + Tailwind, Leaflet maps, Recharts (Vercel, same project as api/)
 docs/         Source verification, AQI breakpoint tables with sources, storage budget, ADRs
 scripts/      One-off tools (source verification)

@@ -164,3 +164,28 @@ def test_heatmap_png(client):
     assert img.shape == (h, w, 4)
     opaque = img[img[..., 3] > 0]
     assert len(opaque) > 0 and (img[..., 3] == 0).any()   # coloured near data, transparent elsewhere
+
+
+def test_anomalies_and_fires(client, schema_url):
+    conn, _url, _schema = schema_url
+    sid_ = sid(client, "Wedding")
+    conn.execute("""insert into anomalies (station_id, ts, pollutant, value, baseline, score, method, cause_hints, starts_at, ends_at, details)
+                    values (%s, now() - interval '5 hours', 'no2', 160, 40, 9.5, 'robust_z_diurnal_v1',
+                            '[{"kind":"traffic","confidence":"low","text":"Traffic site","evidence":{}}]',
+                            now() - interval '6 hours', now() - interval '4 hours', '{"hours":3,"ratio":4.0}')""", (sid_,))
+    # a flare seen on 10 different days (persistent) and a one-off fire
+    for d in range(10):
+        conn.execute("""insert into fire_events (region_id, detected_at, lat, lon, frp, satellite)
+                        values (4, now() - make_interval(days => %s) - interval '1 hour', 51.50, 7.00, 30, 'N')""", (d,))
+    conn.execute("insert into fire_events (region_id, detected_at, lat, lon, frp, satellite) values (4, now() - interval '2 hours', 52.10, 12.30, 4, 'N')")
+
+    d = client.get("/api/v1/regions/germany/anomalies", params={"days": 7}).json()
+    ep = d["episodes"][0]
+    assert (ep["station"], ep["pollutant"], ep["peak"], ep["hints"][0]["kind"]) == ("Berlin Wedding", "no2", 160, "traffic")
+    assert sum(r["n"] for r in d["per_day"]) == 1 and d["per_day"][0]["top_hint"] == "traffic"
+    assert client.get(f"/api/v1/stations/{sid_}/anomalies").json()["episodes"][0]["z"] == 9.5
+
+    f = client.get("/api/v1/regions/germany/fires", params={"hours": 48}).json()
+    flags = {(feat["geometry"]["coordinates"][1], feat["properties"]["persistent"]) for feat in f["features"]}
+    assert (51.5, True) in flags and (52.1, False) in flags
+    assert client.get("/api/v1/regions/germany/fires", params={"hours": 9999}).status_code == 422

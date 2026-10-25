@@ -183,3 +183,46 @@ export interface SearchResult {
 }
 
 export type NearestStation = StationBase & Evaluation & { distance_km: number };
+
+export interface AnomalyHint {
+  kind: string;
+  confidence: "high" | "medium" | "low";
+  text: string;
+  evidence: Record<string, number | string>;
+}
+
+export interface AnomalyEpisode {
+  id: number;
+  station_id: number;
+  station: string;
+  kind: StationKind;
+  station_type: string | null;
+  area: string | null;
+  pollutant: string;
+  starts_at: string;
+  ends_at: string;
+  peak_at: string;
+  peak: number;
+  baseline: number;
+  z: number;
+  details: { hours: number; ratio: number | null };
+  hints: AnomalyHint[];
+}
+
+export interface RegionAnomalies {
+  region: RegionCode;
+  timezone: string;
+  days: number;
+  episodes: AnomalyEpisode[];
+  per_day: { day: string; top_hint: string | null; n: number }[];
+}
+
+export interface FireCollection {
+  type: "FeatureCollection";
+  features: {
+    type: "Feature";
+    id: number;
+    geometry: { type: "Point"; coordinates: [number, number] };
+    properties: { frp: number | null; detected_at: string; satellite: string; confidence: string | null; daynight: string | null; persistent: boolean };
+  }[];
+}

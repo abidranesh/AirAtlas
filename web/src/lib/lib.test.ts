@@ -103,3 +103,18 @@ describe("pivotMonthly", () => {
     ]);
   });
 });
+
+describe("anomaly timeline", () => {
+  it("pivots per-day counts into stacked columns and names missing causes", async () => {
+    const { pivotPerDay, hintInfo } = await import("./anomaly");
+    const { rows, kinds } = pivotPerDay([
+      { day: "2026-10-02", top_hint: "dust", n: 2 },
+      { day: "2026-10-01", top_hint: null, n: 1 },
+      { day: "2026-10-02", top_hint: "fire_upwind", n: 3 },
+    ]);
+    expect(rows).toEqual([{ day: "2026-10-01", none: 1 }, { day: "2026-10-02", dust: 2, fire_upwind: 3 }]);
+    expect(kinds).toEqual(["fire_upwind", "dust", "none"]);
+    expect(hintInfo(null).label).toBe("No clear cause");
+    expect(hintInfo("something_new").label).toBe("something_new");
+  });
+});

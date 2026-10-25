@@ -7,6 +7,7 @@ import {
   Cell,
   Line,
   LineChart,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -14,7 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import { fmt, NO_DATA_COLOR, POLLUTANTS } from "@/lib/format";
-import type { Series, StandardInfo } from "@/lib/types";
+import type { AnomalyEpisode, Series, StandardInfo } from "@/lib/types";
 
 function tickFormatter(range: Series["range"], tz: string) {
   const opts: Intl.DateTimeFormatOptions =
@@ -31,7 +32,17 @@ export function seriesKey(series: Series, pollutant: string): string {
   return series.resolution === "daily" ? `${pollutant}_mean` : pollutant;
 }
 
-export function ConcentrationChart({ series, pollutant, tz }: { series: Series; pollutant: string; tz: string }) {
+export function ConcentrationChart({
+  series,
+  pollutant,
+  tz,
+  episodes = [],
+}: {
+  series: Series;
+  pollutant: string;
+  tz: string;
+  episodes?: AnomalyEpisode[];
+}) {
   const key = seriesKey(series, pollutant);
   const x = series.resolution === "daily" ? "day" : "ts";
   const points = series.points.filter((p) => p[key] !== undefined && p[key] !== null);
@@ -54,6 +65,16 @@ export function ConcentrationChart({ series, pollutant, tz }: { series: Series; 
           {pollutant === "pm25" && series.resolution === "daily" && (
             <ReferenceLine y={15} stroke="#2E7D32" strokeDasharray="4 4" label={{ value: "WHO 24-h guideline", fontSize: 11, position: "insideTopRight" }} />
           )}
+          {series.resolution === "hourly" &&
+            episodes
+              .filter((e) => e.pollutant === pollutant && e.ends_at >= series.since)
+              .map((e) => {
+                // Snap to the chart's own x values so the shaded band lines up with the plotted hours.
+                const xs = points.map((p) => String(p.ts));
+                const x1 = xs.find((t) => t >= e.starts_at) ?? e.starts_at;
+                const x2 = [...xs].reverse().find((t) => t <= e.ends_at) ?? e.ends_at;
+                return <ReferenceArea key={e.id} x1={x1} x2={x2} fill="#dc2626" fillOpacity={0.12} ifOverflow="hidden" />;
+              })}
           <Line type="monotone" dataKey={key} stroke="#0369a1" dot={false} strokeWidth={2} connectNulls={false} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>

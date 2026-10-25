@@ -22,6 +22,8 @@ The engine has no dependencies, so the Vercel build step (`api/vendor_engine.py`
 | `GET /api/v1/regions/{region}/latest?scale=local\|eu_eaqi\|who_2021_pm25` | Every station (measured, low-cost, modeled) with freshness, AQI and latest concentrations, plus a value per admin area for the choropleth; India also returns CPCB's official index | until next ingestion |
 | `GET /api/v1/regions/{region}/boundaries` | Simplified admin-area GeoJSON | 7 days |
 | `GET /api/v1/regions/{region}/heatmap.png?scale=` | Interpolated PM2.5 overlay ([Phase 6](phase-6-heatmap.md)) | until next ingestion |
+| `GET /api/v1/regions/{region}/anomalies?days=` / `GET /api/v1/stations/{id}/anomalies` | Spike episodes with cause hints ([Phase 7](phase-7-anomalies.md)) | until next ingestion |
+| `GET /api/v1/regions/{region}/fires?hours=` | FIRMS detections (GeoJSON), persistent hotspots flagged | until next ingestion |
 | `GET /api/v1/stations/{id}` | AQI on the local standard and both common scales, per-pollutant sub-indices, health advice, sources and licences | until next ingestion |
 | `GET /api/v1/stations/{id}/series?range=24h\|7d\|30d\|1y` | Hourly concentrations (≤ 30 d), daily (1 y), hourly AQI for 24 h / 7 d | until next ingestion |
 | `GET /api/v1/nearest?lat&lon` | Nearest measured stations (PostGIS KNN) with current AQI | until next ingestion |

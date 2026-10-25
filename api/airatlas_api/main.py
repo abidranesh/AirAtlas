@@ -78,6 +78,24 @@ def region_heatmap(region: Region, scale: Scale = "local"):
     })
 
 
+@v1.get("/regions/{region}/anomalies", summary="Anomaly episodes (robust z-score on a same-hour baseline) with cause hints")
+def region_anomalies(response: Response, region: Region, days: int = Query(30, ge=1, le=90)):
+    caching.apply(response, Policy.LIVE)
+    return data.anomalies(region, days)
+
+
+@v1.get("/regions/{region}/fires", summary="NASA FIRMS fire detections as GeoJSON; persistent hotspots flagged")
+def region_fires(response: Response, region: Region, hours: int = Query(48, ge=1, le=24 * 14)):
+    caching.apply(response, Policy.LIVE)
+    return data.fires(region, hours)
+
+
+@v1.get("/stations/{station_id}/anomalies", summary="Anomaly episodes at one station")
+def station_anomalies(response: Response, station_id: int, days: int = Query(90, ge=1, le=90)):
+    caching.apply(response, Policy.LIVE)
+    return data.station_anomalies(station_id, days)
+
+
 @v1.get("/stations/{station_id}", summary="Station details with AQI on the local standard and all common scales")
 def station_detail(response: Response, station_id: int):
     caching.apply(response, Policy.LIVE)

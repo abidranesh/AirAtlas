@@ -7,11 +7,16 @@ import { useCallback, useMemo, useState } from "react";
 import { useApi } from "@/lib/api";
 import { ageText, localTime, POLLUTANTS } from "@/lib/format";
 import { REGION_NOTES } from "@/lib/regions";
-import type { Meta, RegionCode, RegionLatest, StationLatest } from "@/lib/types";
+import type { FireCollection, Meta, RegionAnomalies, RegionCode, RegionLatest, StationLatest } from "@/lib/types";
 import { useScale } from "@/lib/useScale";
+import { EpisodeItem } from "./AnomalyList";
 import type { BoundaryCollection } from "./RegionMap";
 import { AqiBadge, Card, ErrorNote, FreshnessBadge, KindBadge, Legend, ScaleToggle, Skeleton } from "./ui";
 
+const AnomalyTimeline = dynamic(() => import("./Anomalies").then((m) => m.AnomalyTimeline), {
+  ssr: false,
+  loading: () => <Skeleton className="h-44" />,
+});
 const RegionMap = dynamic(() => import("./RegionMap"), {
   ssr: false,
   loading: () => <Skeleton className="h-[55vh] min-h-80" />,
@@ -29,6 +34,9 @@ export default function RegionView({ code }: { code: RegionCode }) {
   const boundaries = useApi<BoundaryCollection>(`/regions/${code}/boundaries`);
   const [showModeled, setShowModeled] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [showFires, setShowFires] = useState(false);
+  const fires = useApi<FireCollection>(showFires ? `/regions/${code}/fires?hours=48` : null);
+  const anomalies = useApi<RegionAnomalies>(`/regions/${code}/anomalies?days=30`);
 
   const data = latest.data;
   const region = meta.data?.regions.find((r) => r.code === code);
@@ -84,6 +92,7 @@ export default function RegionView({ code }: { code: RegionCode }) {
                 stations={data?.stations ?? []}
                 showModeled={showModeled}
                 heatmapUrl={showHeatmap ? `/api/v1/regions/${code}/heatmap.png?scale=${scale}` : undefined}
+                fires={showFires ? fires.data : undefined}
                 onOpenStation={openStation}
                 className="h-[55vh] min-h-80"
               />
@@ -109,6 +118,11 @@ export default function RegionView({ code }: { code: RegionCode }) {
               <label className="inline-flex items-center gap-1.5">
                 <input type="checkbox" checked={showHeatmap} onChange={(e) => setShowHeatmap(e.target.checked)} />
                 Heatmap
+              </label>
+              <label className="inline-flex items-center gap-1.5">
+                <input type="checkbox" checked={showFires} onChange={(e) => setShowFires(e.target.checked)} />
+                Fires (48 h)
+                {showFires && fires.data && <span className="text-neutral-500">· {fires.data.features.length}</span>}
               </label>
               <label className="inline-flex items-center gap-1.5">
                 <input type="checkbox" checked={showModeled} onChange={(e) => setShowModeled(e.target.checked)} />
@@ -153,6 +167,31 @@ export default function RegionView({ code }: { code: RegionCode }) {
           </Card>
         </aside>
       </div>
+
+      <Card>
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-semibold">Pollution spikes, last 30 days</h2>
+          {anomalies.data && <span className="text-xs text-neutral-500">{anomalies.data.episodes.length} episodes</span>}
+        </div>
+        <p className="mb-3 text-xs text-neutral-600 dark:text-neutral-400">
+          Hours far above the same hour on the previous 7 days (robust z ≥ 4 and 1.5× usual). Causes are hints from fires, wind,
+          dust, rain, festivals and neighbouring stations, not proof.
+        </p>
+        {anomalies.error ? (
+          <ErrorNote error={anomalies.error} />
+        ) : !anomalies.data ? (
+          <Skeleton className="h-44" />
+        ) : (
+          <>
+            <AnomalyTimeline data={anomalies.data} />
+            <ul className="mt-2 divide-y divide-neutral-200 dark:divide-neutral-800">
+              {anomalies.data.episodes.slice(0, 8).map((ep) => (
+                <EpisodeItem key={ep.id} ep={ep} tz={tz} />
+              ))}
+            </ul>
+          </>
+        )}
+      </Card>
 
       <Card>
         <h2 className="mb-3 font-semibold">Monitors and sensors ({measured.length})</h2>

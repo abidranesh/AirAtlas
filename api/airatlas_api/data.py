@@ -264,3 +264,45 @@ def status() -> dict:
     return {"generated_at": datetime.now(timezone.utc), "runs": runs, "freshness": freshness, "official_freshness": official,
             "maintenance": maint, "storage": {"bytes": size, "limit_bytes": limit, "used_pct": round(100 * size / limit, 1),
                                               "plan": "Neon free (1 GB per project)"}}
+
+
+ANOMALY_COLS = """a.id, a.station_id, s.name as station, s.kind, s.station_type, a2.name as area, a.pollutant,
+                  a.starts_at, a.ends_at, a.ts as peak_at, a.value as peak, a.baseline, round(a.score::numeric, 1)::float8 as z,
+                  a.details, a.cause_hints as hints"""
+
+
+def anomalies(region_code: str, days: int) -> dict:
+    """Anomaly episodes in a region, newest first, with a per-day count for the timeline."""
+    region = region_row(region_code)
+    rows = db.fetch(f"""select {ANOMALY_COLS}
+                        from anomalies a join stations s on s.id = a.station_id
+                        left join admin_areas a2 on a2.id = s.admin_area_id
+                        where s.region_id = %s and a.ends_at > now() - make_interval(days => %s)
+                        order by a.ts desc limit 500""", (region["id"], days))
+    per_day = db.fetch("""select (a.ts at time zone %s)::date as day, a.cause_hints->0->>'kind' as top_hint, count(*) as n
+                          from anomalies a join stations s on s.id = a.station_id
+                          where s.region_id = %s and a.ends_at > now() - make_interval(days => %s)
+                          group by 1, 2 order by 1""", (region["timezone"], region["id"], days))
+    return {"region": region_code, "timezone": region["timezone"], "days": days, "episodes": rows, "per_day": per_day}
+
+
+def station_anomalies(station_id: int, days: int) -> dict:
+    station(station_id)  # 404 if unknown
+    rows = db.fetch(f"""select {ANOMALY_COLS}
+                        from anomalies a join stations s on s.id = a.station_id
+                        left join admin_areas a2 on a2.id = s.admin_area_id
+                        where a.station_id = %s and a.ends_at > now() - make_interval(days => %s)
+                        order by a.ts desc limit 200""", (station_id, days))
+    return {"station_id": station_id, "days": days, "episodes": rows}
+
+
+def fires(region_code: str, hours: int) -> dict:
+    """FIRMS detections for the map, as GeoJSON. Persistent hotspots (flares, industry) are flagged."""
+    region = region_row(region_code)
+    rows = db.fetch("""select id, lat::float8, lon::float8, frp, detected_at, satellite, confidence, daynight, persistent
+                       from fire_events_flagged where region_id = %s and detected_at > now() - make_interval(hours => %s)
+                       order by detected_at desc limit 5000""", (region["id"], hours))
+    return {"type": "FeatureCollection", "features": [
+        {"type": "Feature", "id": r["id"], "geometry": {"type": "Point", "coordinates": [r["lon"], r["lat"]]},
+         "properties": {k: r[k] for k in ("frp", "detected_at", "satellite", "confidence", "daynight", "persistent")}}
+        for r in rows]}

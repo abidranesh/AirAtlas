@@ -5,7 +5,7 @@ import type * as Leaflet from "leaflet";
 import { useEffect, useRef, useState } from "react";
 import { ageText, KIND_LABELS, textOn } from "@/lib/format";
 import { areaStyle, markerStyle } from "@/lib/mapStyle";
-import type { AreaSummary, StationLatest } from "@/lib/types";
+import type { AreaSummary, FireCollection, StationLatest } from "@/lib/types";
 
 export interface BoundaryCollection {
   type: "FeatureCollection";
@@ -20,6 +20,8 @@ interface Props {
   showModeled: boolean;
   /** PNG overlay covering bbox (interpolated PM2.5); undefined hides it. */
   heatmapUrl?: string;
+  /** NASA FIRMS detections to draw; persistent hotspots (flares, industry) are drawn hollow. */
+  fires?: FireCollection;
   onOpenStation: (id: number) => void;
   className?: string;
 }
@@ -56,11 +58,11 @@ function popupFor(s: StationLatest, onOpen: (id: number) => void): HTMLElement {
   return root;
 }
 
-export default function RegionMap({ bbox, boundaries, areas, stations, showModeled, heatmapUrl, onOpenStation, className }: Props) {
+export default function RegionMap({ bbox, boundaries, areas, stations, showModeled, heatmapUrl, fires, onOpenStation, className }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<Leaflet.Map | null>(null);
   const lib = useRef<typeof Leaflet | null>(null);
-  const layers = useRef<{ areas?: Leaflet.GeoJSON; stations?: Leaflet.LayerGroup; heat?: Leaflet.ImageOverlay }>({});
+  const layers = useRef<{ areas?: Leaflet.GeoJSON; stations?: Leaflet.LayerGroup; heat?: Leaflet.ImageOverlay; fires?: Leaflet.LayerGroup }>({});
   const [ready, setReady] = useState(false);
 
   // Create the map once. Leaflet touches `window`, so it is imported only in the browser.
@@ -132,6 +134,33 @@ export default function RegionMap({ bbox, boundaries, areas, stations, showModel
       });
     layers.current.stations = group.addTo(m);
   }, [ready, boundaries, areas, stations, showModeled, heatmapUrl, onOpenStation]);
+
+  // Fire detections (last 48 h): open burning filled orange, persistent hotspots hollow grey.
+  useEffect(() => {
+    const L = lib.current;
+    const m = map.current;
+    if (!ready || !L || !m) return;
+    layers.current.fires?.remove();
+    layers.current.fires = undefined;
+    if (!fires) return;
+    const group = L.layerGroup();
+    for (const f of fires.features) {
+      const [lon, lat] = f.geometry.coordinates;
+      const p = f.properties;
+      const marker = L.circleMarker(
+        [lat, lon],
+        p.persistent
+          ? { radius: 3, color: "#57534e", weight: 1.2, fillOpacity: 0 }
+          : { radius: 3.5, color: "#7c2d12", weight: 0.8, fillColor: "#ea580c", fillOpacity: 0.9 },
+      );
+      marker.bindTooltip(
+        `${p.persistent ? "Persistent heat source (likely flare or industry)" : "Fire detection"} · ` +
+          `${new Date(p.detected_at).toUTCString().slice(5, 22)} UTC${p.frp ? ` · ${Math.round(p.frp)} MW` : ""}`,
+      );
+      group.addLayer(marker);
+    }
+    layers.current.fires = group.addTo(m);
+  }, [ready, fires]);
 
   // Interpolated overlay: the API renders it for exactly the region's bbox.
   useEffect(() => {
