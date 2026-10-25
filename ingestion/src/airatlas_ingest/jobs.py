@@ -49,12 +49,13 @@ def _cpcb(conn, settings: Settings, region: Region, run: db.Run) -> None:
     try:
         stations, official = CpcbAdapter(settings.data_gov_in_api_key).fetch_state(region.cpcb_state, run.rejected)
     except SourceError as e:
-        # Without our own key we share data.gov.in's public sample key, which is often throttled.
-        # CPCB here only adds the official-index badge (concentrations come from OpenAQ), so a
-        # throttled hour is recorded as 'partial' and the next hour tries again.
-        if settings.data_gov_in_api_key or "429" not in str(e):
+        # Without our own key we share data.gov.in's public sample key: often throttled (429), and
+        # from GitHub's runners the host usually times out entirely. CPCB here only adds the
+        # official-index badge (concentrations come from OpenAQ), so the hour is recorded as
+        # 'partial' and the next hour tries again. With our own key, failures are real failures.
+        if settings.data_gov_in_api_key:
             raise
-        run.errors.append(f"sample key rate-limited, skipped this hour: {e}")
+        run.errors.append(f"data.gov.in sample key unavailable, skipped this hour: {e}")
         return
     db.upsert_stations(conn, "cpcb", stations)
     run.fetched = len(official)

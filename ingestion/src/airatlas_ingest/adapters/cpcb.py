@@ -67,7 +67,7 @@ class CpcbAdapter:
         # The shared sample key is throttled for everyone; long waits only hold a database connection
         # idle (Neon suspends after 5 idle minutes), so without our own key give up quickly.
         self.http = http or (HttpClient("cpcb", per_minute=20) if api_key else
-                             HttpClient("cpcb", per_minute=6, retries=2, backoff_base=2.0, max_retry_after=15.0))
+                             HttpClient("cpcb", per_minute=6, retries=2, backoff_base=2.0, max_retry_after=15.0, timeout=20.0))
 
     def fetch_state(self, state: str, rejected: Counter) -> tuple[list[StationIn], list[OfficialSubIndex]]:
         records: list[dict] = []

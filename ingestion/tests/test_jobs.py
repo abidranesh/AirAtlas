@@ -27,18 +27,18 @@ def run():
     return SimpleNamespace(errors=[], rejected=Counter(), details={}, fetched=0, written=0)
 
 
-def test_throttled_sample_key_is_a_warning_not_a_failure(monkeypatch):
-    monkeypatch.setattr(jobs, "CpcbAdapter", failing_adapter("cpcb: giving up after 5 attempts (HTTP 429)"))
+@pytest.mark.parametrize("message", [
+    "cpcb: giving up after 2 attempts (HTTP 429)",                 # shared key throttled
+    "cpcb: giving up after 2 attempts (ConnectTimeout: timed out)",  # host unreachable from CI runners
+])
+def test_sample_key_failures_are_a_skipped_hour_not_a_failed_job(monkeypatch, message):
+    monkeypatch.setattr(jobs, "CpcbAdapter", failing_adapter(message))
     r = run()
     jobs._cpcb(None, settings(None), REGIONS["tamil_nadu"], r)  # must not raise
-    assert r.errors and "rate-limited" in r.errors[0]
+    assert r.errors and "skipped this hour" in r.errors[0]
 
 
-@pytest.mark.parametrize("key, message", [
-    ("own-key", "cpcb: giving up after 5 attempts (HTTP 429)"),   # our own key throttled: a real problem
-    (None, "cpcb: HTTP 403 forbidden"),                            # anything other than throttling
-])
-def test_other_cpcb_failures_still_fail(monkeypatch, key, message):
-    monkeypatch.setattr(jobs, "CpcbAdapter", failing_adapter(message))
+def test_with_our_own_key_failures_still_fail(monkeypatch):
+    monkeypatch.setattr(jobs, "CpcbAdapter", failing_adapter("cpcb: giving up after 5 attempts (HTTP 429)"))
     with pytest.raises(SourceError):
-        jobs._cpcb(None, settings(key), REGIONS["kerala"], run())
+        jobs._cpcb(None, settings("own-key"), REGIONS["kerala"], run())
