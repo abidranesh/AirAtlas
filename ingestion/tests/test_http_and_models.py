@@ -120,3 +120,13 @@ class TestModels:
         rejected = Counter()
         validate_all(StationIn, [{"source": "x", "external_id": "1", "name": "n", "lat": 0, "lon": 0, "kind": "reference"}], rejected)
         assert sum(rejected.values()) == 1
+
+
+def test_retry_after_is_capped():
+    def handler(req):
+        return httpx.Response(429, headers={"Retry-After": "120"})
+
+    c, clock = client(handler, retries=2, max_retry_after=15)
+    with pytest.raises(SourceError):
+        c.get_json("https://x.test/a")
+    assert max(clock.sleeps) <= 15

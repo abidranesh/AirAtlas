@@ -106,3 +106,17 @@ def test_failed_run_is_recorded(conn):
     status, error, fetched = conn.execute(
         "select status, error, rows_fetched from ingestion_runs order by id desc limit 1").fetchone()
     assert (status, fetched) == ("failed", 3) and "upstream exploded" in error
+
+
+def test_run_status_is_recorded_after_the_connection_drops(conn):
+    """Neon suspends idle compute and drops connections; the run log must still be written."""
+    import os
+
+    other = db.connect(os.environ["TEST_DATABASE_URL"])
+    other.execute(f"set search_path to {conn.execute('show search_path').fetchone()[0]}")
+    run = db.Run(other, "hourly", "kerala", "cpcb")
+    run.fetched = 7
+    other.close()  # what Neon's scale-to-zero does to an idle connection
+    run.finish("partial")
+    status, fetched = conn.execute("select status, rows_fetched from ingestion_runs where id = %s", (run.id,)).fetchone()
+    assert (status, fetched) == ("partial", 7)

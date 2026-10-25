@@ -46,12 +46,14 @@ class HttpClient:
         timeout: float = 90.0,
         retries: int = 5,
         backoff_base: float = 2.0,
+        max_retry_after: float = 120.0,
         transport: httpx.BaseTransport | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.source = source
         self.limiter = RateLimiter(per_minute, sleep=sleep)
         self.retries, self.backoff_base, self.sleep = retries, backoff_base, sleep
+        self.max_retry_after = max_retry_after
         self.calls = 0
         self._client = httpx.Client(
             headers={"User-Agent": "AirAtlas/0.1 (+https://github.com; portfolio project)", **(headers or {})},
@@ -75,7 +77,7 @@ class HttpClient:
                 last = f"HTTP {resp.status_code}"
                 retry_after = resp.headers.get("Retry-After")
                 if retry_after and retry_after.isdigit():
-                    wait = min(float(retry_after), 120.0)
+                    wait = min(float(retry_after), self.max_retry_after)
                     log.warning("rate limited, honouring Retry-After", source=self.source, wait_s=wait)
                     self.sleep(wait)
                     continue

@@ -64,7 +64,10 @@ class CpcbAdapter:
             log.warning("DATA_GOV_IN_API_KEY not set; using the public sample key (10 rows/call, rate limited)")
         self.key = api_key or SAMPLE_KEY
         self.page = 1000 if api_key else 10
-        self.http = http or HttpClient("cpcb", per_minute=20 if api_key else 6)
+        # The shared sample key is throttled for everyone; long waits only hold a database connection
+        # idle (Neon suspends after 5 idle minutes), so without our own key give up quickly.
+        self.http = http or (HttpClient("cpcb", per_minute=20) if api_key else
+                             HttpClient("cpcb", per_minute=6, retries=2, backoff_base=2.0, max_retry_after=15.0))
 
     def fetch_state(self, state: str, rejected: Counter) -> tuple[list[StationIn], list[OfficialSubIndex]]:
         records: list[dict] = []

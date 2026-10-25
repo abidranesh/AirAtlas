@@ -217,6 +217,11 @@ def maintenance(conn: psycopg.Connection, settings: Settings) -> int:
         d["daily_rows"], d["weather_daily_rows"] = aggregate_daily(conn, datetime.now(timezone.utc) - timedelta(days=4))
         d["holds"] = seed_holds(conn)
         with conn.transaction():
+            # A process that died mid-run (e.g. killed, or its connection dropped) leaves 'running' rows.
+            d["abandoned_runs"] = conn.execute(
+                """update ingestion_runs set status = 'failed', finished_at = now(),
+                          error = coalesce(error, 'abandoned: no result recorded within 2 hours')
+                   where status = 'running' and started_at < now() - interval '2 hours'""").rowcount
             d["archived_rows"] = conn.execute(ARCHIVE_HOLDS).rowcount
             d["dropped_partitions"] = [r[0] for r in conn.execute(
                 "select drop_old_partitions('readings', %s) union all select drop_old_partitions('weather', %s)",

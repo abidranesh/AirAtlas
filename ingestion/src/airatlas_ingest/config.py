@@ -43,13 +43,13 @@ REGIONS: dict[str, Region] = {
         Region(
             "tamil_nadu", 1, "Tamil Nadu", ZoneInfo("Asia/Kolkata"), (76.2, 8.0, 80.4, 13.6),
             BoundarySpec("IND", "ADM2", "district", within_iso3_adm1="Tamil Nadu"),
-            hourly_sources=("cpcb", "openaq"), cpcb_state="Tamil Nadu",
+            hourly_sources=("openaq", "cpcb"), cpcb_state="Tamil Nadu",
             openaq_query={"iso": "IN", "bbox": "76.2,8.0,80.4,13.6"},
         ),
         Region(
             "kerala", 2, "Kerala", ZoneInfo("Asia/Kolkata"), (74.85, 8.17, 77.42, 12.8),
             BoundarySpec("IND", "ADM2", "district", within_iso3_adm1="Kerala"),
-            hourly_sources=("cpcb", "openaq"), cpcb_state="Kerala",
+            hourly_sources=("openaq", "cpcb"), cpcb_state="Kerala",
             openaq_query={"iso": "IN", "bbox": "74.85,8.17,77.42,12.8"},
         ),
         Region(

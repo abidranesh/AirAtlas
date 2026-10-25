@@ -24,7 +24,12 @@ log = logs.get(__name__)
 MIGRATION_LOCK = 0x41495241  # "AIRA"
 
 
+_url: str | None = None  # remembered so a run can still record its status after a dropped connection
+
+
 def connect(url: str) -> psycopg.Connection:
+    global _url
+    _url = url
     # autocommit: every `with conn.transaction()` block is its own real transaction, so a failure
     # in one source's run can never roll back another source's already-written rows.
     return psycopg.connect(url, autocommit=True, prepare_threshold=None, connect_timeout=30,
@@ -323,15 +328,24 @@ class Run:
             self.id = conn.execute(
                 "insert into ingestion_runs (job, region, source) values (%s, %s, %s) returning id", (job, region, source)
             ).fetchone()[0]
+            self.search_path = conn.execute("show search_path").fetchone()[0]
 
     def finish(self, status: str, error: str | None = None) -> None:
         details = {**self.details, "rejected_reasons": dict(self.rejected.most_common(10)), "errors": self.errors[:20]}
-        with self.conn.transaction():
-            self.conn.execute(
-                """update ingestion_runs set finished_at = now(), status = %s, rows_fetched = %s, rows_written = %s,
-                   rows_rejected = %s, error = %s, details = %s where id = %s""",
-                (status, self.fetched, self.written, sum(self.rejected.values()), error, json.dumps(details, default=str), self.id),
-            )
+        sql = """update ingestion_runs set finished_at = now(), status = %s, rows_fetched = %s, rows_written = %s,
+                 rows_rejected = %s, error = %s, details = %s where id = %s"""
+        params = (status, self.fetched, self.written, sum(self.rejected.values()), error, json.dumps(details, default=str), self.id)
+        try:
+            with self.conn.transaction():
+                self.conn.execute(sql, params)
+        except (psycopg.OperationalError, psycopg.InterfaceError) as e:
+            # Neon suspends idle compute and drops connections; record the outcome on a fresh one.
+            log.warning("connection lost before recording run status; reconnecting", run_id=self.id, error=str(e)[:120])
+            if _url is None:
+                raise
+            with psycopg.connect(_url, autocommit=True, prepare_threshold=None, connect_timeout=30) as fresh:
+                fresh.execute(f"set search_path to {self.search_path}")
+                fresh.execute(sql, params)
 
 
 @contextmanager
@@ -341,7 +355,7 @@ def tracked_run(conn: psycopg.Connection, job: str, region: str | None, source: 
     try:
         yield run
     except Exception as e:
-        if conn.info.transaction_status != psycopg.pq.TransactionStatus.IDLE:
+        if not conn.closed and conn.info.transaction_status not in (psycopg.pq.TransactionStatus.IDLE, psycopg.pq.TransactionStatus.UNKNOWN):
             conn.rollback()
         msg = logs.redact(f"{type(e).__name__}: {e}")[:1000]
         run.finish("failed", msg)
