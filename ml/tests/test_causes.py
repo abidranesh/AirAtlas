@@ -58,6 +58,13 @@ class TestFires:
         assert kinds(hints_for(Context(*CHENNAI, "pm25", fires=close))) == [("fire_nearby", "low")]
 
 
+def test_dust_must_rise_above_its_own_usual_level():
+    # UAE summer: dust is always ~100 ug/m3, so 120 is not an event; 250 (2.5x) is.
+    assert hints_for(Context(25.2, 55.3, "pm25", dust_max=120, dust_baseline=100)) == []
+    assert ("dust", "high") in kinds(hints_for(Context(25.2, 55.3, "pm25", dust_max=250, dust_baseline=100)))
+    assert ("dust", "medium") in kinds(hints_for(Context(25.2, 55.3, "pm25", dust_max=160, dust_baseline=100)))
+
+
 def test_dust_only_for_particles():
     assert ("dust", "high") in kinds(hints_for(Context(25.2, 55.3, "pm10", dust_max=180)))
     assert ("dust", "medium") in kinds(hints_for(Context(25.2, 55.3, "pm25", dust_max=60)))

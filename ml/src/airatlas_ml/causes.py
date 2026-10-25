@@ -16,6 +16,7 @@ FIRE_NEAR_KM = 50.0
 UPWIND_CONE_DEG = 45.0
 MIN_WIND_MS = 1.0
 DUST_MEDIUM, DUST_HIGH = 40.0, 100.0         # ug/m3, modeled (CAMS) dust near the station
+DUST_RISE_MEDIUM, DUST_RISE_HIGH = 1.5, 2.0   # x its own 7-day median: in the UAE dust is always present
 STAGNANT_WIND_MS, DRY_MM = 1.5, 0.5
 REGIONAL_SHARE, REGIONAL_MIN_STATIONS = 0.3, 3
 ARTEFACT_RATIO = 8.0
@@ -51,6 +52,7 @@ class Context:
     wind: list[tuple[float, float]] = field(default_factory=list)  # (direction FROM, deg; speed, m/s)
     precip_mm: float | None = None
     dust_max: float | None = None
+    dust_baseline: float | None = None      # 7-day median dust at the same model point
     fires: list[Fire] = field(default_factory=list)
     co_stations: tuple[int, int] = (1, 1)   # (neighbours within 100 km with an overlapping episode, neighbours measuring it)
     festival: str | None = None
@@ -134,9 +136,13 @@ def fire_hints(ctx: Context) -> list[Hint]:
 def hints_for(ctx: Context) -> list[Hint]:
     hints = fire_hints(ctx)
     if ctx.pollutant in ("pm10", "pm25") and ctx.dust_max is not None and ctx.dust_max >= DUST_MEDIUM:
-        hints.append(Hint("dust", "high" if ctx.dust_max >= DUST_HIGH else "medium",
-                          f"Desert dust: modeled dust nearby peaked at {ctx.dust_max:.0f} µg/m³",
-                          {"dust_max": round(ctx.dust_max, 1)}))
+        rise = ctx.dust_max / ctx.dust_baseline if ctx.dust_baseline else None
+        if rise is None or rise >= DUST_RISE_MEDIUM:
+            high = ctx.dust_max >= DUST_HIGH and (rise is None or rise >= DUST_RISE_HIGH)
+            hints.append(Hint("dust", "high" if high else "medium",
+                              f"Desert dust: modeled dust nearby peaked at {ctx.dust_max:.0f} µg/m³"
+                              + (f", {rise:.1f}x its usual level" if rise else ""),
+                              {"dust_max": round(ctx.dust_max, 1), **({"rise": round(rise, 2)} if rise else {})}))
     if ctx.festival and ctx.pollutant in ("pm25", "pm10", "so2"):
         hints.append(Hint("festival", "high", f"Coincides with {ctx.festival} (fireworks and bonfires)",
                           {"event": ctx.festival}))

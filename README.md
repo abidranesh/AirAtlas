@@ -4,7 +4,7 @@ Real-time and historical air quality for **Tamil Nadu, Kerala, the UAE and Germa
 own national AQI standard, with a common scale for fair cross-country comparison, plus 24–48 h forecasts and
 explained pollution spikes. Runs entirely on free tiers.
 
-> Status: **Phase 7 complete**, live at https://airatlas-omega.vercel.app. [1: sources and storage budget](docs/phase-1-data-sources.md) · [2: AQI engine](aqi-engine/README.md) ([standards](docs/aqi-standards/README.md)) · [3: database and ingestion](docs/phase-3-ingestion.md) · [4: read API](docs/phase-4-api.md) · [5: frontend](docs/phase-5-frontend.md) · [6: IDW heatmap](docs/phase-6-heatmap.md) · [7: anomalies and cause hints](docs/phase-7-anomalies.md)
+> Status: **Phase 8 complete**, live at https://airatlas-omega.vercel.app. [1: sources and storage budget](docs/phase-1-data-sources.md) · [2: AQI engine](aqi-engine/README.md) ([standards](docs/aqi-standards/README.md)) · [3: database and ingestion](docs/phase-3-ingestion.md) · [4: read API](docs/phase-4-api.md) · [5: frontend](docs/phase-5-frontend.md) · [6: IDW heatmap](docs/phase-6-heatmap.md) · [7: anomalies and cause hints](docs/phase-7-anomalies.md) · [8: insight pages](docs/phase-8-insights.md)
 
 ## Repository layout
 

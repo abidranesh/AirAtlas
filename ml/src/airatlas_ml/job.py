@@ -84,6 +84,10 @@ def _festival(region: Region, at: datetime) -> str | None:
     return None
 
 
+def _median(values: list[float]) -> float | None:
+    return float(sorted(values)[len(values) // 2]) if len(values) >= 24 else None
+
+
 def _window(series: dict[datetime, object], start: datetime, end: datetime) -> list:
     return [v for t, v in series.items() if start <= t <= end]
 
@@ -115,7 +119,7 @@ def detect_region(conn: psycopg.Connection, region: Region, days: int, now: date
     nearest = _nearest_model_points(conn, region.id, ids) if found else {}
     points = list(set(nearest.values()))
     weather = _weather(conn, points, detect_from - timedelta(days=1)) if points else {}
-    dust = _dust(conn, points, detect_from - timedelta(days=1)) if points else {}
+    dust = _dust(conn, points, detect_from - timedelta(days=8)) if points else {}
     fires = _fires(conn, region.id, detect_from - timedelta(days=1)) if found else []
 
     rows = []
@@ -131,6 +135,7 @@ def detect_region(conn: psycopg.Connection, region: Region, days: int, now: date
             wind=[(d, sp) for d, sp, _ in wx if d is not None and sp is not None],
             precip_mm=sum(p for *_, p in wx if p is not None) if wx else None,
             dust_max=max(_window(dust.get(pt, {}), ep.starts_at - timedelta(hours=3), ep.ends_at), default=None),
+            dust_baseline=_median(_window(dust.get(pt, {}), ep.starts_at - timedelta(days=7), ep.starts_at - timedelta(hours=3))),
             fires=[f for f in fires if ep.starts_at - timedelta(hours=24) <= f.detected_at <= ep.peak_at],
             co_stations=(len(peers), measuring),
             festival=_festival(region, ep.peak_at),

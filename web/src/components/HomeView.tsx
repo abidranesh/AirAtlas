@@ -76,6 +76,10 @@ export default function HomeView() {
           <Link href={`/compare?scale=${scale}`} className="font-medium text-sky-700 hover:underline dark:text-sky-400">
             Compare regions in detail →
           </Link>
+          <span className="mx-2 text-neutral-400">·</span>
+          <Link href="/insights" className="font-medium text-sky-700 hover:underline dark:text-sky-400">
+            Insights: festivals, monsoon, dust, heating season →
+          </Link>
         </p>
       </section>
 

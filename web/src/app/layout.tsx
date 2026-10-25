@@ -47,6 +47,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   Compare
                 </Link>
               </li>
+              <li>
+                <Link href="/insights" className="font-medium hover:underline">
+                  Insights
+                </Link>
+              </li>
             </ul>
           </nav>
         </header>

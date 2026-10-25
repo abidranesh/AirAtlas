@@ -32,7 +32,7 @@ space and time, not attribution**, and the UI says so.
 |---|---|---|
 | 🔥 Fires upwind | NASA FIRMS open-burning detections ≤ 150 km, in a 45° cone around the vector-mean wind (Open-Meteo, 6 h before the peak), wind ≥ 1 m/s | ≥ 10 detections or ≥ 50 MW: high · ≥ 3: medium · else low |
 | 🏭 Industrial heat upwind | Same, but **persistent** hotspots (≥ 10 distinct days in 60 at a 0.02° cell) | low |
-| 🏜️ Desert dust | Modeled CAMS dust at the nearest model point ≥ 40 µg/m³ (PM only) | ≥ 100: high, else medium |
+| 🏜️ Desert dust | Modeled CAMS dust at the nearest model point ≥ 40 µg/m³ **and** ≥ 1.5× its own 7-day median (PM only; in the UAE dust is always present, see [Phase 8](phase-8-insights.md)) | ≥ 100 µg/m³ and ≥ 2×: high, else medium |
 | 🎆 Festival | Peak inside a Deepavali, Bhogi or New Year's Eve window (PM, SO₂) | high |
 | 🌫️ Stagnant air | Mean wind < 1.5 m/s and < 0.5 mm rain | medium |
 | 🗺️ Area-wide | ≥ 30% of stations **within 100 km** measuring the pollutant spiked within ±3 h | medium |

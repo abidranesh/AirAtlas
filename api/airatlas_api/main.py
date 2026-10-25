@@ -9,7 +9,7 @@ from airatlas_aqi import COMMON_SCALES, STANDARDS, get_standard
 from fastapi import APIRouter, FastAPI, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import caching, data, db, heatmap
+from . import caching, data, db, heatmap, insights
 from .caching import Policy
 
 Scale = Literal["local", "eu_eaqi", "who_2021_pm25"]
@@ -125,6 +125,21 @@ def search(response: Response, q: str = Query(min_length=2, max_length=60)):
 def compare(response: Response, scale: Literal["eu_eaqi", "who_2021_pm25"] = "eu_eaqi"):
     caching.apply(response, Policy.LIVE)
     return data.compare(scale)
+
+
+INSIGHTS = {
+    "festivals": insights.festivals,
+    "kerala-monsoon": insights.kerala_monsoon,
+    "uae-dust": insights.uae_dust,
+    "germany-seasons": insights.germany_seasons,
+    "tamil-nadu-land-use": insights.tamil_nadu_land_use,
+}
+
+
+@v1.get("/insights/{name}", summary="Insight pages computed from stored measurements, with their data basis")
+def insight(response: Response, name: Literal["festivals", "kerala-monsoon", "uae-dust", "germany-seasons", "tamil-nadu-land-use"]):
+    caching.apply(response, Policy.DAILY)  # long-run aggregates: a daily refresh is plenty
+    return INSIGHTS[name]()
 
 
 @v1.get("/status", summary="Ingestion health per region and source, data freshness and storage use")

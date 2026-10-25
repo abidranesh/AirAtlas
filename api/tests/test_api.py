@@ -189,3 +189,38 @@ def test_anomalies_and_fires(client, schema_url):
     flags = {(feat["geometry"]["coordinates"][1], feat["properties"]["persistent"]) for feat in f["features"]}
     assert (51.5, True) in flags and (52.1, False) in flags
     assert client.get("/api/v1/regions/germany/fires", params={"hours": 9999}).status_code == 422
+
+
+def test_insights_endpoints(client, schema_url):
+    from datetime import date, datetime, timedelta, timezone
+
+    conn, _url, _schema = schema_url
+    wedding = sid(client, "Wedding")
+    # A New Year's Eve window one year ago with a fireworks spike at local midnight, in the archive.
+    year = date.today().year - 1
+    conn.execute("""insert into retention_holds (label, region_id, starts_at, ends_at)
+                    values (%s, 4, %s, %s)""", (f"new_years_eve_{year}",
+                                                 datetime(year, 12, 27, 23, tzinfo=timezone.utc), datetime(year + 1, 1, 3, 23, tzinfo=timezone.utc)))
+    t = datetime(year, 12, 27, 23, tzinfo=timezone.utc)
+    rows = []
+    while t < datetime(year + 1, 1, 3, 23, tzinfo=timezone.utc):
+        v = 120.0 if t == datetime(year, 12, 31, 23, tzinfo=timezone.utc) else 5.0   # 00:00 CET on 1 January
+        rows.append((wedding, t, v))
+        t += timedelta(hours=1)
+    with conn.cursor() as cur:
+        cur.executemany("insert into readings_archive (station_id, ts, source_id, pm25) values (%s, %s, 2, %s)", rows)
+
+    fest = client.get("/api/v1/insights/festivals").json()
+    ev = next(e for e in fest["events"] if e["label"] == f"new_years_eve_{year}")
+    assert ev["hourly"]["peak_hour"] == 0 and ev["hourly"]["peak_pm25"] == 120 and ev["hourly"]["baseline_pm25"] == 5
+    assert ev["hourly"]["ratio"] == pytest.approx(24)
+    assert "public" in client.get("/api/v1/insights/festivals").headers["cache-control"]
+
+    ger = client.get("/api/v1/insights/germany-seasons").json()
+    urban_traffic = next(g for g in ger["comparison"] if g["group"] == "urban traffic")
+    assert urban_traffic["stations"] == 0   # Wedding is not classified in the seed: nothing invented
+    assert client.get("/api/v1/insights/nowhere").status_code == 422
+
+    for name in ("kerala-monsoon", "uae-dust", "tamil-nadu-land-use"):
+        d = client.get(f"/api/v1/insights/{name}")
+        assert d.status_code == 200 and "basis" in d.json()   # empty data still answers, with its basis
